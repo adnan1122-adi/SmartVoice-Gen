@@ -35,7 +35,6 @@ export interface AuthUser {
   username: string;
   role: UserRole;
   expiry: Date;
-  customApiKey?: string;
 }
 
 export interface VoiceSettings {

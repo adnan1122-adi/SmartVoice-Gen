@@ -1,5 +1,8 @@
 {
-  "name": "voice cloner try Copy of smartVoice gen",
+  "name": "smartVoice gen",
   "description": "A professional video creation tool using Gemini AI for high-quality text-to-speech, supporting multiple languages and custom video compositing.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
 }

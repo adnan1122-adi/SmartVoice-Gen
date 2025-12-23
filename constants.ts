@@ -13,12 +13,10 @@ export const AVAILABLE_FONTS = [
   'Impact'
 ];
 
-// Expanded list of voices.
-// Note: 'Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr' are standard. 
-// Others are mapped or aliased in logic if the API strictly restricts names.
+// Updated to standard Gemini voices: Puck, Charon, Kore, Fenrir, Zephyr
 export const GEMINI_VOICES = {
-  [VoiceGender.FEMALE]: ['Kore', 'Zephyr', 'Aoede', 'Leto', 'Lyra'],
-  [VoiceGender.MALE]: ['Fenrir', 'Charon', 'Puck', 'Orion', 'Marcus'],
+  [VoiceGender.FEMALE]: ['Kore', 'Zephyr'],
+  [VoiceGender.MALE]: ['Fenrir', 'Charon', 'Puck'],
 };
 
 export const SAMPLE_RATE = 24000;

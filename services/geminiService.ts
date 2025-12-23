@@ -2,16 +2,8 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 import { GEMINI_VOICES } from '../constants';
 
-const getAI = (apiKey?: string) => {
-  // Use user-provided key if available, otherwise fallback to system env variable
-  const key = apiKey || process.env.API_KEY || '';
-  if (!key) {
-    console.warn("Gemini API Key is missing. Please provide one in settings or environment variables.");
-  }
-  return new GoogleGenAI({ apiKey: key });
-};
-
-const SAFE_VOICES = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr', 'Aoede'];
+// Standard voices supported by Gemini 2.5/3 series
+const SAFE_VOICES = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'];
 
 function base64ToBytes(base64: string): Uint8Array {
   const binaryString = atob(base64);
@@ -73,18 +65,19 @@ async function retryOperation<T>(operation: () => Promise<T>, maxRetries: number
   throw lastError;
 }
 
+// Fix: Remove apiKey parameter and use process.env.API_KEY directly as per guidelines.
 export const generateSpeech = async (
   text: string,
   voiceName: string,
   language: string,
-  options: { speed: number; stability: number; similarity: number; styleExaggeration: number; accent?: string },
-  apiKey?: string
+  options: { speed: number; stability: number; similarity: number; styleExaggeration: number; accent?: string }
 ): Promise<ArrayBuffer | undefined> => {
-  const ai = getAI(apiKey);
+  // Initialize AI client with system API key
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const chunks = chunkText(text);
   const BATCH_SIZE = 1;
   const audioSegments: Uint8Array[] = new Array(chunks.length);
-  const fallbackVoice = ['Fenrir', 'Charon', 'Puck', 'Orion', 'Marcus'].includes(voiceName) ? 'Fenrir' : 'Kore';
+  const fallbackVoice = ['Fenrir', 'Charon', 'Puck'].includes(voiceName) ? 'Fenrir' : 'Kore';
 
   const stabilityDesc = options.stability > 0.7 ? "consistent and professional" : options.stability < 0.3 ? "expressive and emotional" : "balanced";
   const accentPart = options.accent ? ` with a clear ${options.accent} accent` : "";
@@ -152,12 +145,12 @@ export const generateSpeech = async (
   }
 };
 
+// Fix: Remove apiKey parameter and use process.env.API_KEY directly.
 export const generateClonedSpeech = async (
   text: string,
   referenceAudioBase64: string,
   referenceMimeType: string,
-  options: { speed: number; stability: number; similarity: number; styleExaggeration: number },
-  apiKey?: string
+  options: { speed: number; stability: number; similarity: number; styleExaggeration: number }
 ): Promise<ArrayBuffer | undefined> => {
   const hash = referenceAudioBase64.length % SAFE_VOICES.length;
   const bestMatchVoice = SAFE_VOICES[hash];
@@ -165,16 +158,17 @@ export const generateClonedSpeech = async (
   return generateSpeech(text, bestMatchVoice, "English", {
     ...options,
     accent: "Natural"
-  }, apiKey);
+  });
 };
 
-export const translateText = async (text: string, targetLanguage: string, apiKey?: string): Promise<string> => {
-  const ai = getAI(apiKey);
+// Fix: Use 'gemini-3-flash-preview' for translation and remove apiKey parameter.
+export const translateText = async (text: string, targetLanguage: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   if (!text.trim()) return "";
   try {
     return await retryOperation(async () => {
         const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         contents: `Translate to ${targetLanguage}. Return text only:\n\n${text}`,
         });
         return response.text?.trim() || text;

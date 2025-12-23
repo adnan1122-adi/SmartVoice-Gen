@@ -23,8 +23,6 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [needsApiKey, setNeedsApiKey] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
 
   // --- App State ---
@@ -158,9 +156,6 @@ const App: React.FC = () => {
           });
           setShowLoginModal(false);
           showToast('Welcome back! Buy a coffee for smartVoice gen');
-          if (foundUser.r === 'User') {
-            setNeedsApiKey(true);
-          }
         }
       } else {
         setAuthError('Invalid username or password.');
@@ -175,19 +170,8 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setNeedsApiKey(false);
-    setTempApiKey('');
     stopAudioPreview();
     showToast('Logged out successfully.');
-  };
-
-  const handleApiKeySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tempApiKey.trim()) {
-      setCurrentUser(prev => prev ? { ...prev, customApiKey: tempApiKey.trim() } : null);
-      setNeedsApiKey(false);
-      showToast('API Key saved. Ready to create!');
-    }
   };
 
   // --- App Effects ---
@@ -236,7 +220,7 @@ const App: React.FC = () => {
     setIsTranslating(true);
     showToast('Translating... Buy a coffee for smartVoice gen');
     try {
-      const translated = await translateText(videoState.text, voiceSettings.language, currentUser?.customApiKey);
+      const translated = await translateText(videoState.text, voiceSettings.language);
       setVideoState(prev => ({ ...prev, text: translated }));
     } catch (e) {
       alert("Translation failed.");
@@ -357,9 +341,9 @@ const App: React.FC = () => {
       if (voiceMode === 'cloned' && voiceSettings.clonedVoiceId) {
         const customVoice = customVoices.find(v => v.id === voiceSettings.clonedVoiceId);
         if (!customVoice) throw new Error("Voice not found");
-        rawAudioBuffer = await generateClonedSpeech(videoState.text, customVoice.base64Audio, customVoice.mimeType, options, currentUser?.customApiKey);
+        rawAudioBuffer = await generateClonedSpeech(videoState.text, customVoice.base64Audio, customVoice.mimeType, options);
       } else {
-        rawAudioBuffer = await generateSpeech(videoState.text, voiceSettings.voiceName, voiceSettings.language, options, currentUser?.customApiKey);
+        rawAudioBuffer = await generateSpeech(videoState.text, voiceSettings.voiceName, voiceSettings.language, options);
       }
       if (rawAudioBuffer) {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -794,7 +778,7 @@ const App: React.FC = () => {
                    </span>
                 </div>
               </div>
-              <button onClick={handleGenerateAudio} disabled={videoState.isGeneratingAudio || !videoState.text || (currentUser.role === 'User' && !currentUser.customApiKey)} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all">
+              <button onClick={handleGenerateAudio} disabled={videoState.isGeneratingAudio || !videoState.text} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all">
                 {videoState.isGeneratingAudio ? 'Generating Voice...' : <><Mic size={16} /> Generate Narration</>}
               </button>
             </>
@@ -836,39 +820,10 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
-        
-        {needsApiKey && (
-           <div className="absolute inset-0 bg-black/90 z-[60] flex items-center justify-center p-6">
-              <div className="bg-gray-800 border border-gray-700 p-8 rounded-3xl w-full text-center space-y-6 animate-in zoom-in-95">
-                 <Key className="text-yellow-500 mx-auto" size={48} />
-                 <div>
-                    <h3 className="text-xl font-bold">API Key Required</h3>
-                    <p className="text-gray-400 text-sm mt-2">Standard users must provide their own Gemini API key to proceed.</p>
-                 </div>
-                 <form onSubmit={handleApiKeySubmit} className="space-y-4">
-                    <input 
-                      type="password" 
-                      placeholder="Paste Gemini API Key..." 
-                      value={tempApiKey}
-                      onChange={e => setTempApiKey(e.target.value)}
-                      className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                      required
-                    />
-                    <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl">Save Key & Start</button>
-                    <button type="button" onClick={handleLogout} className="text-gray-500 text-sm hover:text-white">Cancel & Logout</button>
-                 </form>
-              </div>
-           </div>
-        )}
       </aside>
 
       <main className="flex-1 bg-gray-950 p-4 md:p-8 flex flex-col relative">
         <div className="absolute top-8 right-8 z-20 flex items-center gap-4">
-           {currentUser.role === 'User' && currentUser.customApiKey && (
-              <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-full text-xs text-green-400">
-                <Check size={12}/> API Key Connected
-              </div>
-           )}
            <button onClick={handleLogout} className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-4 py-2 rounded-full text-sm font-medium transition-all">
              <LogOut size={16} /> Logout
            </button>
